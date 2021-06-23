@@ -209,7 +209,7 @@
             tooltipTree.html("<p><b>" + d.artdtsch + ' </b>' +
                 "<br><br> <b>Adresse: </b>" + d.strname + ' ' + d.hausnr +
                 "<br> <b>Alter: </b>" + d.standalter + ' Jahre' +
-                "<br> <b>Wassermenge: </b>" + d.wassermenge + ' Liter' + '</p>')
+                "<br> <b>Wassermenge: </b>" + d.wassersumme + ' Liter' + '</p>')
                 .style("left", (event.pageX) + "px")
                 .style("top", (event.pageY - 28) + "px");
 
@@ -246,7 +246,7 @@
         });
 
         // read in trees
-        d3.csv("data/outputTrees.csv").then(function (trees) {
+        d3.csv("data/wateredSum.csv").then(function (trees) {
             trees.forEach(function (d) {
                 d.geometry = new Object;
                 d.geometry.type = "Point";
