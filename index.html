@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Gieß den Kiez – Gießungen in Berlin</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+    <style>
+        text {
+            font-family: 'Yanone Kaffeesatz', sans-serif;
+            font-size: 10pt;
+            z-index: 100;
+        }
+
+        .boundary {
+            fill: rgba(10, 90, 12, 0.2);
+            stroke: darkred;
+            stroke-width: 0.05em;
+            z-index: 100;
+        }
+
+        path:hover {
+            cursor: grab;
+        }
+
+        button {
+            margin-left: 1.5em;
+            padding: 1em 2em 1em 2em;
+            background: lightgrey;
+            border: none;
+        }
+
+        button:hover {
+            background: darkred;
+            cursor: pointer;
+        }
+
+        .header {
+            padding: 0 1em 0 1em;
+        }
+
+        .container {
+            max-width: 1000px;
+            padding: 0 1em 0 1em;
+        }
+
+        #title {
+            font-weight: bold;
+            font-size: 1.5em;
+            padding: 0 0 0.5em 0;
+        }
+
+        #subline {
+            font-style: normal;
+            font-size: 1em;
+            color: darkgray;
+            padding: 0 0 0.5em 0;
+        }
+
+        svg {
+            border: 1px solid black;
+            margin: 1em 0 0 0;
+        }
+
+        #tooltipBezirk {
+            position: absolute;
+            z-index: 100;
+            height: 2.5em;
+            width: auto;
+            background: rgb(238, 238, 238);
+            font-family: Helvetica, Arial, Sans-Serif;
+            border-radius: 0.2em;
+            padding: 0 0.5em 0 0.5em;
+            text-align: left;
+            color: black;
+            opacity: 0;
+        }
+
+        #tooltipTree {
+            position: absolute;
+            z-index: 100;
+            min-width: 12em;
+            height: auto;
+            background: rgb(238, 238, 238);
+            font-family: Helvetica, Arial, Sans-Serif;
+            border-radius: 0.2em;
+            padding: 0 0.5em 0 0.5em;
+            text-align: left;
+            color: black;
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- add some DOM elements -->
+    <div class="header">
+        <div id="title"></div>
+        <div id="subline"></div>
+    </div>
+    <button onclick="reset()">Reset Zoom</button>
+    <div class="container">
+        <svg id="chart" width="700" height="400" viewBox="0 0 700 400"></svg>
+        <div id="tooltipBezirk"></div>
+        <div id="tooltipTree"></div>
+    </div>
+
+    <script>
+        //mapbox stuff
+        // https://franksh.com/posts/d3-mapboxgl/
+        // mapboxgl.accessToken = "YOUR_TOKEN";
+        // var map = new mapboxgl.Map({
+        //     container: "map",
+        //     style: "mapbox://styles/mapbox/streets-v9",
+        //     center: [-74.5, 40.0],
+        //     zoom: 9
+        // });
+
+        var margin = ({ top: 00, right: 40, bottom: 0, left: 40 })
+        var width = width - margin.left - margin.right
+        var height = height - margin.top - margin.bottom
+
+        // add title
+        d3.select("#title")
+            .append("text")
+            .text("Gieß den Kiez – Gießungen in Berlin")
+
+        // add subline
+        d3.select("#subline")
+            .append("text")
+            .text("Hover über die Flächen!")
+
+        var svg = d3.select("#chart")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+
+
+        // define map settings
+        var projection, bottomLeft, topRight, rotLong, berlinCoords;
+        var tooltipBezirk = d3.select("#tooltipBezirk");
+        var tooltipTree = d3.select("#tooltipTree");
+
+
+        // [lng,lat]
+        berlinCoords = [13.404954, 52.500008];
+
+        //convert from coordinates to x and y position
+        projection = d3.geoMercator()
+            .scale(38100)
+            .center([13.604954, 52.460]);
+
+        // convert from json to SVG x
+        var path = d3.geoPath().projection(projection);
+
+
+        // helper functions for interaction
+        function mouseOverBezirk(event, d) {
+            d3.selectAll(".boundary")
+                .transition()
+                .duration(200)
+                .style("opacity", .5)
+
+            d3.select(this)
+                .style("cursor", "pointer")
+                .transition()
+                .duration(200)
+                .style("opacity", 1);
+
+            tooltipBezirk.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltipBezirk.html(
+                '<p><b>Bezirk: </b>' + d.properties.Gemeinde_name + '</p>')
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        }
+
+        function mouseOutBezirk(d) {
+            d3.selectAll(".boundary")
+                .transition()
+                .duration(200)
+                .style("opacity", 1)
+
+            d3.select(this)
+                .style("cursor", "pointer")
+                .transition()
+                .duration(200)
+                .style("opacity", 1);
+
+            tooltipBezirk.transition()
+                .duration(200)
+                .style("opacity", 0);
+        }
+
+        function mouseOverTree(event, d) {
+            d3.select(this)
+                .style("cursor", "pointer")
+                .transition()
+                .duration(200)
+                .style("opacity", "1")
+                .style("stroke-width", "0.01em")
+                .style("stroke", "darkred");
+
+            tooltipTree.transition()
+                .duration(200)
+                .style("opacity", .9);
+            tooltipTree.html("<p><b>" + d.artdtsch + ' </b>' +
+                "<br><br> <b>Adresse: </b>" + d.strname + ' ' + d.hausnr +
+                "<br> <b>Alter: </b>" + d.standalter + ' Jahre' +
+                "<br> <b>Wassermenge: </b>" + d.wassermenge + ' Liter' + '</p>')
+                .style("left", (event.pageX) + "px")
+                .style("top", (event.pageY - 28) + "px");
+
+        }
+
+        function mouseOutTree(d) {
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .style("opacity", "0.5")
+                .style("stroke", "none");
+
+            tooltipTree.transition()
+                .duration(200)
+                .style("opacity", 0);
+        }
+
+
+        // read in json
+        d3.json("data/geojsonBezirke.json").then(function (geojson) {
+            console.log("berliner bezirke:", geojson);
+
+            // draw polygon of Berliner Bezirke
+            svg.append('g')
+                .attr("class", "bezirk")
+                .selectAll('path')
+                .data(geojson.features)
+                .enter()
+                .append("path")
+                .attr('class', function (d) { return "boundary" })
+                .attr("d", path)
+                .on("mouseover", mouseOverBezirk)
+                .on("mouseout", mouseOutBezirk);
+        });
+
+        // read in trees
+        d3.csv("data/outputTrees.csv").then(function (trees) {
+            trees.forEach(function (d) {
+                d.geometry = new Object;
+                d.geometry.type = "Point";
+
+                try {
+                    var lng = d.lng;
+                    var lat = d.lat;
+                    lng = parseFloat(lng);
+                    lat = parseFloat(lat);
+                    console.log("TRY");
+
+                    // CHANGE coords due that they are in woring order in the dataset
+                    d.geometry.coordinates = [lat, lng];
+                }
+                catch {
+                    console.log("ERROR: bad formatted lat/long");
+                    var lng = d.lng;
+                    var lat = d.lat;
+                    lng = parseFloat(lng);
+                    lat = parseFloat(lat);
+                    d.geometry.coordinates = [lat, lng];
+                }
+            });
+
+            console.log("single points:", trees);
+
+            //stucked for 2hours! --> projection only works on an Arrays with length 2!!!
+            // append places as circles
+            svg.append("g")
+                .attr("class", "trees")
+                .selectAll("circle")
+                .data(trees)
+                .enter()
+                .append("circle")
+                .attr("class", function (d) { return "id-" + d.id })
+                .attr("r", function (d) {
+                    return 2;
+                })
+                .attr("cx", function (d) {
+                    return projection(d.geometry.coordinates)[0]
+                })
+                .attr("cy", function (d) {
+                    return projection(d.geometry.coordinates)[1]
+                })
+                .attr("fill", "steelblue")
+                .attr("opacity", 0.5)
+                .on("mouseover", mouseOverTree)
+                .on("mouseout", mouseOutTree);
+        });
+
+        // zoom function for interaction
+        var startingZoomLevel = d3.zoomTransform(this);
+        var startingZoomLevel = startingZoomLevel.k; // == 1 by default
+
+        var zoom = d3.zoom()
+            .scaleExtent([1, 28])
+            .on('zoom', function (event) {
+                svg.selectAll('path')
+                    .attr('transform', event.transform),
+                    svg.selectAll('text')
+                        .attr('transform', event.transform);
+                svg.selectAll('circle')
+                    .attr('transform', event.transform)
+                // tried to add some fancy zoom here
+                // BUT: just worked on on FIRST zoom in & out // on SECOND zoom in & out its buggy
+                // .attr("r", function ()
+                // {
+                //     var actualZoomLevel = d3.zoomTransform(this);
+                //     var actualZoomLevel = actualZoomLevel.k;
+                //     if(actualZoomLevel >= startingZoomLevel){
+                //         startingZoomLevel = actualZoomLevel;
+                //         return d3.select(this).attr('r') * 0.985;
+                //     }
+                //     else{
+                //         return d3.select(this).attr('r') * 1.015;
+                //     }
+                //     // if(startingZoomLevel < actualZoomLevel){ //zoom in
+                //     //     startingZoomLevel = actualZoomLevel-0.0000001;
+                //     //     return d3.select(this).attr('r') * 0.98;
+                //     // }
+                //     // else{
+                //     //     // console.log("starting: ",actualZoomLevel);
+                //     //     // console.log("actual: ",actualZoomLevel);
+                //     //     return d3.select(this).attr('r') * 1.02;
+                //     // }
+                // });
+            });
+
+        // reset zoom
+        function reset() {
+            var t = d3.zoomIdentity.translate(0, 0).scale(1)
+            svg.call(zoom.transform, t)
+        }
+
+        // enable general zoom behavior
+        svg.call(zoom);
+    </script>
+</body>
+
+</html>
