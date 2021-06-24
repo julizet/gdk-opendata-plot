@@ -303,7 +303,7 @@
         var startingZoomLevel = startingZoomLevel.k; // == 1 by default
 
         var zoom = d3.zoom()
-            .scaleExtent([1, 28])
+            .scaleExtent([1, 14])
             .on('zoom', function (event) {
                 svg.selectAll('path')
                     .attr('transform', event.transform),
@@ -313,17 +313,16 @@
                     .attr('transform', event.transform)
                 // tried to add some fancy zoom here
                 // BUT: just worked on on FIRST zoom in & out // on SECOND zoom in & out its buggy
-                // .attr("r", function ()
-                // {
-                //     var actualZoomLevel = d3.zoomTransform(this);
-                //     var actualZoomLevel = actualZoomLevel.k;
-                //     if(actualZoomLevel >= startingZoomLevel){
-                //         startingZoomLevel = actualZoomLevel;
-                //         return d3.select(this).attr('r') * 0.985;
-                //     }
-                //     else{
-                //         return d3.select(this).attr('r') * 1.015;
-                //     }
+                .attr("r", function ()
+                    {
+                    var actualZoomLevel = d3.zoomTransform(this);
+                    var actualZoomLevel = actualZoomLevel.k;
+                    if(actualZoomLevel >= 5){
+                        return 1;
+                    }
+                    else{
+                     return 2;
+                    }
                 //     // if(startingZoomLevel < actualZoomLevel){ //zoom in
                 //     //     startingZoomLevel = actualZoomLevel-0.0000001;
                 //     //     return d3.select(this).attr('r') * 0.98;
@@ -333,7 +332,7 @@
                 //     //     // console.log("actual: ",actualZoomLevel);
                 //     //     return d3.select(this).attr('r') * 1.02;
                 //     // }
-                // });
+                });
             });
 
         // reset zoom
