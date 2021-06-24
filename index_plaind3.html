@@ -6,11 +6,11 @@
     <title>Gieß den Kiez – Gießungen in Berlin</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js'></script>
+
     <style>
         text {
             font-family: 'Yanone Kaffeesatz', sans-serif;
-            font-size: 14pt;
+            font-size: 10pt;
             z-index: 100;
         }
 
@@ -25,24 +25,44 @@
             cursor: grab;
         }
 
+        button {
+            margin-left: 1.5em;
+            padding: 1em 2em 1em 2em;
+            background: lightgrey;
+            border: none;
+        }
+
+        button:hover {
+            background: steelblue;
+            color: white;
+            cursor: pointer;
+        }
+
         .header {
             padding: 0 1em 0 1em;
         }
 
-        .wrapper {
+        .container {
+            max-width: 1000px;
             padding: 0 1em 0 1em;
         }
 
-        #map {
-            position: relative;
-            z-index: 0;
-            width: 100%;
-            height: 500px;
-            }
-
         #title {
             font-weight: bold;
-            padding: 1em 0 1em 0;
+            font-size: 1.5em;
+            padding: 0 0 0.5em 0;
+        }
+
+        #subline {
+            font-style: normal;
+            font-size: 1em;
+            color: darkgray;
+            padding: 0 0 0.5em 0;
+        }
+
+        svg {
+            border: 1px solid black;
+            margin: 1em 0 0 0;
         }
 
         #tooltipBezirk {
@@ -79,38 +99,29 @@
     <!-- add some DOM elements -->
     <div class="header">
         <div id="title"></div>
+        <div id="subline"></div>
     </div>
-    <div class="wrapper">
-        <div id="map"></div>
+    <button onclick="reset()">Reset Zoom</button>
+    <div class="container">
+        <svg id="chart" width="700" height="400" viewBox="0 0 700 400"></svg>
+        <div id="tooltipBezirk"></div>
+        <div id="tooltipTree"></div>
     </div>
+
     <script>
-    // mapbox stuff
-    mapboxgl.accessToken = "pk.eyJ1IjoianVsaWF6ZXQiLCJhIjoiY2trdmhkdmE0MXNidjJ1cGZhaXVrZDE1NSJ9.I0eyCt352bKnMo50n4cDIQ";
-    var map = new mapboxgl.Map({
-    container: "map",
-    style: "mapbox://styles/mapbox/streets-v9",
-    center: [-74.5, 40.0],
-    zoom: 9
-    });
+        //mapbox stuff
+        // https://franksh.com/posts/d3-mapboxgl/
+        // mapboxgl.accessToken = "YOUR_TOKEN";
+        // var map = new mapboxgl.Map({
+        //     container: "map",
+        //     style: "mapbox://styles/mapbox/streets-v9",
+        //     center: [-74.5, 40.0],
+        //     zoom: 9
+        // });
 
-    var container = map.getCanvasContainer();
-    console.log(container)
-// Add zoom and rotation controls to the map.
-map.addControl(new mapboxgl.NavigationControl());
-
-    var svg = d3    
-        .select("mapboxgl-canvas")
-        .append("svg")
-        .attr("width", "100%")
-        .attr("height", "500")
-        .style("position", "absolute")
-        .style("z-index", 1000);
-
-    // wire d3js to mapbox
-    function project(d) {
-        return map.project(new mapboxgl.LngLat(d[0], d[1]));
-    }
-
+        var margin = ({ top: 00, right: 40, bottom: 0, left: 40 })
+        var width = width - margin.left - margin.right
+        var height = height - margin.top - margin.bottom
 
         // add title
         d3.select("#title")
@@ -122,15 +133,10 @@ map.addControl(new mapboxgl.NavigationControl());
             .append("text")
             .text("Hover über die Flächen!")
 
-        var data = [[-74.5, 40.05], [-74.45, 40.0], [-74.55, 40.0]];
+        var svg = d3.select("#chart")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
 
-        var dots = svg
-        .selectAll("circle")
-        .data(data)
-        .enter()
-        .append("circle")
-        .attr("r", 10)
-        .style("fill", "ff0000");
 
         // define map settings
         var projection, bottomLeft, topRight, rotLong, berlinCoords;
@@ -145,7 +151,7 @@ map.addControl(new mapboxgl.NavigationControl());
         projection = d3.geoMercator()
             .scale(38100)
             .center([13.604954, 52.460]);
-    
+
         // convert from json to SVG x
         var path = d3.geoPath().projection(projection);
 
@@ -291,6 +297,52 @@ map.addControl(new mapboxgl.NavigationControl());
                 .on("mouseover", mouseOverTree)
                 .on("mouseout", mouseOutTree);
         });
+
+        // zoom function for interaction
+        var startingZoomLevel = d3.zoomTransform(this);
+        var startingZoomLevel = startingZoomLevel.k; // == 1 by default
+
+        var zoom = d3.zoom()
+            .scaleExtent([1, 14])
+            .on('zoom', function (event) {
+                svg.selectAll('path')
+                    .attr('transform', event.transform),
+                    svg.selectAll('text')
+                        .attr('transform', event.transform);
+                svg.selectAll('circle')
+                    .attr('transform', event.transform)
+                // tried to add some fancy zoom here
+                // BUT: just worked on on FIRST zoom in & out // on SECOND zoom in & out its buggy
+                .attr("r", function ()
+                    {
+                    var actualZoomLevel = d3.zoomTransform(this);
+                    var actualZoomLevel = actualZoomLevel.k;
+                    if(actualZoomLevel >= 5){
+                        return 1;
+                    }
+                    else{
+                     return 2;
+                    }
+                //     // if(startingZoomLevel < actualZoomLevel){ //zoom in
+                //     //     startingZoomLevel = actualZoomLevel-0.0000001;
+                //     //     return d3.select(this).attr('r') * 0.98;
+                //     // }
+                //     // else{
+                //     //     // console.log("starting: ",actualZoomLevel);
+                //     //     // console.log("actual: ",actualZoomLevel);
+                //     //     return d3.select(this).attr('r') * 1.02;
+                //     // }
+                });
+            });
+
+        // reset zoom
+        function reset() {
+            var t = d3.zoomIdentity.translate(0, 0).scale(1)
+            svg.call(zoom.transform, t)
+        }
+
+        // enable general zoom behavior
+        svg.call(zoom);
     </script>
 </body>
 
