@@ -24,8 +24,15 @@
       .mapboxgl-popup {
         max-width: 400px;
         font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
-        line-height: normal;
+        line-height: 90%;
         }
+
+      .mapboxgl-popup-content {
+        padding: 0 1.5em 0 1.5em;
+        box-shadow: 0 6px 6px rgba(0,0,0,0.11);
+      }
+
+
     </style>
   </head>
   <body>
@@ -134,8 +141,7 @@
         coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
         }
         
-        // Populate the popup and set its coordinates
-        // based on the feature found.
+        // Populate the popup and set its coordinates based on the feature
         popup.setLngLat(coordinates).setHTML('<h3>' + artdtsch + ' (' + alter + ' J.) ' + '</h3>' +
           '<p><b> Anzahl Gießungen: ' + anzahlG + '</b></p>' +
           '<p><b> Erhaltene Wassermenge: ' + wassersumme + ' l</b></p><p>' +
@@ -147,8 +153,6 @@
         map.getCanvas().style.cursor = '';
         popup.remove();
         })
-
-
     </script>
   </body>
 </html>
