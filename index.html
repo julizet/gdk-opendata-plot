@@ -21,6 +21,11 @@
         bottom: 0;
         width: 100%;
       }
+      .mapboxgl-popup {
+        max-width: 400px;
+        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        line-height: normal;
+        }
     </style>
   </head>
   <body>
@@ -46,14 +51,6 @@
  
       // add points with tileset
       map.on('load', function () {
-        map.addSource('watered-trees', {
-            type: 'vector',
-            // Use any Mapbox-hosted tileset using its tileset id.
-            // Learn more about where to find a tileset id:
-            // https://docs.mapbox.com/help/glossary/tileset-id/
-            url: 'mapbox://juliazet.4x7k4a0y'
-        });
-
         map.addSource('bezirke', {
           type: 'vector',
           url: 'mapbox://juliazet.7q2rwfwz'
@@ -91,8 +88,16 @@
             }
         });
 
-                // add tree nodes
-                map.addLayer({
+      map.addSource('watered-trees', {
+            type: 'vector',
+            // Use any Mapbox-hosted tileset using its tileset id.
+            // Learn more about where to find a tileset id:
+            // https://docs.mapbox.com/help/glossary/tileset-id/
+            url: 'mapbox://juliazet.4x7k4a0y'
+        });
+
+      // add tree nodes
+      map.addLayer({
           'id': 'watered-trees',
           'type': 'circle',
           'source': 'watered-trees',
@@ -104,6 +109,44 @@
 
       });
 
+      // Create a popup, but don't add it to the map yet.
+      var popup = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false
+      });
+
+      map.on('mouseenter', 'watered-trees', function (e) {
+        // Change the cursor style as a UI indicator.
+        map.getCanvas().style.cursor = 'pointer';
+        
+        let coordinates = e.features[0].geometry.coordinates.slice();
+        let artdtsch = e.features[0].properties.artdtsch;
+        let strname = e.features[0].properties.strname;
+        let hausnr = e.features[0].properties.hausnr;
+        let wassersumme = e.features[0].properties.wassersumme;
+        let anzahlG = e.features[0].properties.anzahlG;
+        let alter = e.features[0].properties.standalter;
+        
+        // Ensure that if the map is zoomed out such that multiple
+        // copies of the feature are visible, the popup appears
+        // over the copy being pointed to.
+        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+        coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+        }
+        
+        // Populate the popup and set its coordinates
+        // based on the feature found.
+        popup.setLngLat(coordinates).setHTML('<h3>' + artdtsch + ' (' + alter + ' J.) ' + '</h3>' +
+          '<p><b> Anzahl Gießungen: ' + anzahlG + '</b></p>' +
+          '<p><b> Erhaltene Wassermenge: ' + wassersumme + ' l</b></p><p>' +
+          strname + ' ' + hausnr + '</p>')
+          .addTo(map);
+        });
+          
+      map.on('mouseleave', 'watered-trees', function () {
+        map.getCanvas().style.cursor = '';
+        popup.remove();
+        })
 
 
     </script>
