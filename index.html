@@ -65,11 +65,11 @@
       map = new mapboxgl.Map({
         container: "map", // container id
         style: "mapbox://styles/mapbox/light-v9",
-        center: [13.404954, 52.500008], // starting position ([lng, lat] for Berlin
-        zoom: 10, // starting zoom
+        center: [13.430168, 52.489868], // starting position ([lng, lat] close to Hermannplatz
+        zoom: 15, // starting zoom
         pitch: 45, 
-        maxZoom: 20,
-        minZoom: 8,
+        maxZoom: 17,
+        minZoom: 10,
       });
 
       var scale = new mapboxgl.ScaleControl({
@@ -78,26 +78,25 @@
         });
       map.addControl(scale, "bottom-right");
  
-      // add points with tileset
+      // add data sources right from mapbox tilesets
       map.on('load', function () {
+
         map.addSource('bezirke', {
           type: 'vector',
           url: 'mapbox://juliazet.7q2rwfwz'
-          });
+        });
 
         map.addLayer({
           'id': 'bezirk-fill',
           'type': 'fill',
           'source': 'bezirke',
-          'source-layer': 'geojsonBezirke-8q7ss1',
+          'source-layer': 'geojsonBezirke-8q7ss1', //must be specified cuz source is vector!!
           'layout': {
-          // Make the layer visible by default.
           'visibility': 'visible',
           },
           'paint': {
             'fill-color': 'tomato',
             'fill-opacity': 
-
                 0.05
           }
         });
@@ -117,22 +116,43 @@
             }
         });
 
-      map.addSource('watered-trees', {
+        map.addSource('watered-trees', {
             type: 'vector',
-            // Use any Mapbox-hosted tileset using its tileset id.
-            // Learn more about where to find a tileset id:
-            // https://docs.mapbox.com/help/glossary/tileset-id/
-            url: 'mapbox://juliazet.4x7k4a0y'
+            url: 'mapbox://juliazet.4x7k4a0y' 
         });
 
-      // add tree nodes
-      map.addLayer({
+        map.addSource('watered-trees-geojson', {
+            type: 'geojson',
+            data: './data/treesExtrusion.geojson' 
+        });
+
+        // add tree nodes
+        map.addLayer({
           'id': 'watered-trees',
           'type': 'circle',
           'source': 'watered-trees',
           'source-layer': 'wateredTreesSum-b5lwpz',
           'paint': {
               'circle-color': '#2F2FA2'
+          }
+        });
+
+        map.addLayer({
+          'id': 'watered-extrusion',
+          'type': 'fill-extrusion',
+          'source': 'watered-trees-geojson',
+          'paint': {
+          // Get the `fill-extrusion-color` from the source `color` property.
+          'fill-extrusion-color': '#2F2FA2',
+          
+          // Get `fill-extrusion-height` from the source `height` property.
+          'fill-extrusion-height': ['get', 'wassersumme'],
+          
+          // Get `fill-extrusion-base` from the source `base_height` property.
+          'fill-extrusion-base': 0,
+          
+          // Make extrusions slightly opaque to see through indoor walls.
+          'fill-extrusion-opacity': 0.5
           }
         });
 
