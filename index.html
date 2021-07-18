@@ -8,8 +8,11 @@
       content="initial-scale=1,maximum-scale=1,user-scalable=no"
     />
     <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.js"></script>
-    <link href='https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css' rel='stylesheet' />
-    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <link
+      href="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.3.1/mapbox-gl.js"></script>
     <style>
       body {
         margin: 0;
@@ -23,151 +26,166 @@
       }
       .mapboxgl-popup {
         max-width: 400px;
-        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+        font: 12px/20px "Helvetica Neue", Arial, Helvetica, sans-serif;
         line-height: 90%;
-        }
-
+      }
       .mapboxgl-popup-content {
         padding: 0 1.5em 0 1.5em;
-        box-shadow: 0 6px 6px rgba(0,0,0,0.11);
+        box-shadow: 0 6px 6px rgba(0, 0, 0, 0.11);
       }
-      .filter-ctrl {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 1;
-      }
-        
-      .filter-ctrl input[type='text'] {
-        font: 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
-        width: 100%;
-        border: 0;
-        background-color: #fff;
-        margin: 0;
-        color: rgba(0, 0, 0, 0.5);
-        padding: 10px;
-        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
-        border-radius: 3px;
-        width: 180px;
-        }
-
     </style>
   </head>
   <body>
     <div id="map"></div>
-    <div class="filter-ctrl">
-      <input id="filter-input" type="text" name="filter" placeholder="Filter by name">
-    </div>
+    <div class="filter-ctrl"></div>
     <script>
-      mapboxgl.accessToken = "pk.eyJ1IjoianVsaWF6ZXQiLCJhIjoiY2trdmhkdmE0MXNidjJ1cGZhaXVrZDE1NSJ9.I0eyCt352bKnMo50n4cDIQ";
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoianVsaWF6ZXQiLCJhIjoiY2trdmhkdmE0MXNidjJ1cGZhaXVrZDE1NSJ9.I0eyCt352bKnMo50n4cDIQ";
       var map;
-
       map = new mapboxgl.Map({
         container: "map", // container id
         style: "mapbox://styles/mapbox/light-v9",
         center: [13.430168, 52.489868], // starting position ([lng, lat] close to Hermannplatz
         zoom: 15, // starting zoom
-        pitch: 45, 
+        pitch: 45,
         maxZoom: 17,
         minZoom: 10,
       });
 
+      var bezirkID = null;
+
       var scale = new mapboxgl.ScaleControl({
         maxWidth: 160,
-        unit: 'metric',
-        });
+        unit: "metric",
+      });
       map.addControl(scale, "bottom-right");
- 
+
       // add data sources right from mapbox tilesets
-      map.on('load', function () {
+      map.on("load", function () {
+        map.addSource("bezirke", {
+          type: "geojson",
+          generateId: true,
+          data: "./data/bezirksgrenzen.geojson",
+        });
 
-        map.addSource('bezirke', {
-          type: 'vector',
-          url: 'mapbox://juliazet.7q2rwfwz'
+        map.addSource("watered-trees", {
+          type: "vector",
+          url: "mapbox://juliazet.4x7k4a0y",
+        });
+
+        map.addSource("watered-trees-geojson", {
+          type: "geojson",
+          data: "./data/treesExtrusion.geojson",
         });
 
         map.addLayer({
-          'id': 'bezirk-fill',
-          'type': 'fill',
-          'source': 'bezirke',
-          'source-layer': 'geojsonBezirke-8q7ss1', //must be specified cuz source is vector!!
-          'layout': {
-          'visibility': 'visible',
+          id: "bezirk-fill",
+          type: "fill",
+          source: "bezirke",
+          layout: {},
+          paint: {
+            "fill-color": "darkseagreen",
+            "fill-opacity": [
+              "case",
+              ["boolean", ["feature-state", "hover"], false],
+              0.15,
+              0,
+            ],
           },
-          'paint': {
-            'fill-color': 'tomato',
-            'fill-opacity': 
-                0.05
-          }
         });
 
         map.addLayer({
-          'id': 'bezirk-outline',
-          'type': 'line',
-          'source': 'bezirke',
-          'source-layer': 'geojsonBezirke-8q7ss1',
-          'layout': {
-          // Make the layer visible by default.
-          'visibility': 'visible',
+          id: "bezirk-outline",
+          type: "line",
+          source: "bezirke",
+          layout: {},
+          paint: {
+            "line-color": "darkseagreen",
+            "line-width": 1.5,
           },
-          'paint': {
-            'line-color': 'tomato',
-            'line-width': 1
-            }
-        });
-
-        map.addSource('watered-trees', {
-            type: 'vector',
-            url: 'mapbox://juliazet.4x7k4a0y' 
-        });
-
-        map.addSource('watered-trees-geojson', {
-            type: 'geojson',
-            data: './data/treesExtrusion.geojson' 
         });
 
         // add tree nodes
         map.addLayer({
-          'id': 'watered-trees',
-          'type': 'circle',
-          'source': 'watered-trees',
-          'source-layer': 'wateredTreesSum-b5lwpz',
-          'paint': {
-              'circle-color': '#2F2FA2'
-          }
+          id: "watered-trees",
+          type: "circle",
+          source: "watered-trees",
+          "source-layer": "wateredTreesSum-b5lwpz",
+          paint: {
+            // Make circles larger as the user zooms from z12 to z22.
+            "circle-radius": {
+              base: 2,
+              stops: [
+                [10, 2],
+                [22, 100],
+              ],
+            },
+            // Color circles by ethnicity, using a `match` expression.
+            "circle-color": /* other */ "#2F2FA2",
+          },
         });
 
         map.addLayer({
-          'id': 'watered-extrusion',
-          'type': 'fill-extrusion',
-          'source': 'watered-trees-geojson',
-          'paint': {
-          // Get the `fill-extrusion-color` from the source `color` property.
-          'fill-extrusion-color': '#2F2FA2',
-          
-          // Get `fill-extrusion-height` from the source `height` property.
-          'fill-extrusion-height': ['get', 'wassersumme'],
-          
-          // Get `fill-extrusion-base` from the source `base_height` property.
-          'fill-extrusion-base': 0,
-          
-          // Make extrusions slightly opaque to see through indoor walls.
-          'fill-extrusion-opacity': 0.5
-          }
-        });
+          id: "watered-extrusion",
+          type: "fill-extrusion",
+          source: "watered-trees-geojson",
+          paint: {
+            // Get the `fill-extrusion-color` from the source `color` property.
+            "fill-extrusion-color": "#2F2FA2",
 
+            // Get `fill-extrusion-height` from the source `height` property.
+            "fill-extrusion-height": ["get", "wassersumme"],
+
+            // Get `fill-extrusion-base` from the source `base_height` property.
+            "fill-extrusion-base": 0,
+
+            // Make extrusions slightly opaque to see through indoor walls.
+            "fill-extrusion-opacity": 0.5,
+          },
+        });
+        // +++ END OF MAP ON LOAD
+      });
+
+      // When the user moves their mouse over the state-fill layer, we'll update the
+      // feature state for the feature under the mouse.
+      map.on("mousemove", "bezirk-fill", function (e) {
+        if (e.features.length > 0) {
+          if (bezirkID !== null) {
+            map.setFeatureState(
+              { source: "bezirke", id: bezirkID },
+              { hover: false }
+            );
+          }
+          bezirkID = e.features[0].id;
+          map.setFeatureState(
+            { source: "bezirke", id: bezirkID },
+            { hover: true }
+          );
+        }
+      });
+
+      // When the mouse leaves the state-fill layer, update the feature state of the
+      // previously hovered feature.
+      map.on("mouseleave", "bezirk-fill", function () {
+        if (bezirkID !== null) {
+          map.setFeatureState(
+            { source: "bezirke", id: bezirkID },
+            { hover: false }
+          );
+        }
+        bezirkID = null;
       });
 
       // Create a popup, but don't add it to the map yet.
       var popup = new mapboxgl.Popup({
         closeButton: false,
-        closeOnClick: false
+        closeOnClick: false,
       });
 
-      map.on('mouseenter', 'watered-trees', function (e) {
+      map.on("mouseenter", "watered-trees", function (e) {
         // Change the cursor style as a UI indicator.
-        map.getCanvas().style.cursor = 'pointer';
-        
+        map.getCanvas().style.cursor = "pointer";
+
         let coordinates = e.features[0].geometry.coordinates.slice();
         let artdtsch = e.features[0].properties.artdtsch;
         let strname = e.features[0].properties.strname;
@@ -175,26 +193,42 @@
         let wassersumme = e.features[0].properties.wassersumme;
         let anzahlG = e.features[0].properties.anzahlG;
         let alter = e.features[0].properties.standalter;
-        
+
         // Ensure that if the map is zoomed out such that multiple
         // copies of the feature are visible, the popup appears
         // over the copy being pointed to.
         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
-        coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
         }
-        
+
         // Populate the popup and set its coordinates based on the feature
-        popup.setLngLat(coordinates).setHTML('<h3>' + artdtsch + ' (' + alter + ' J.) ' + '</h3>' +
-          '<p><b> Anzahl Gießungen: ' + anzahlG + '</b></p>' +
-          '<p><b> Erhaltene Wassermenge: ' + wassersumme + ' l</b></p><p>' +
-          strname + ' ' + hausnr + '</p>')
+        popup
+          .setLngLat(coordinates)
+          .setHTML(
+            "<h3>" +
+              artdtsch +
+              " (" +
+              alter +
+              " J.) " +
+              "</h3>" +
+              "<p><b> Anzahl Gießungen: " +
+              anzahlG +
+              "</b></p>" +
+              "<p><b> Erhaltene Wassermenge: " +
+              wassersumme +
+              " l</b></p><p>" +
+              strname +
+              " " +
+              hausnr +
+              "</p>"
+          )
           .addTo(map);
-        });
-          
-      map.on('mouseleave', 'watered-trees', function () {
-        map.getCanvas().style.cursor = '';
+      });
+
+      map.on("mouseleave", "watered-trees", function () {
+        map.getCanvas().style.cursor = "";
         popup.remove();
-        })
+      });
     </script>
   </body>
 </html>
