@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Gieß den Kiez – Gießungen</title>
+    <title>Gieß den Kiez – Kennzahlen</title>
     <meta
       name="viewport"
       content="initial-scale=1,maximum-scale=1,user-scalable=no"
@@ -25,19 +25,74 @@
         width: 100%;
       }
       .mapboxgl-popup {
-        max-width: 400px;
+        width: inline-block;
         font: 12px/20px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        line-height: 100%;
+      }
+      .mapboxgl-popup p {
         line-height: 90%;
       }
       .mapboxgl-popup-content {
-        padding: 0 1.5em 0 1.5em;
+        padding: 0 1em 0.2em 1em;
         box-shadow: 0 6px 6px rgba(0, 0, 0, 0.11);
+      }
+      .legend {
+        background-color: #fff;
+        border-radius: 5px;
+        top: 10px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        font: 14px "Helvetica Neue", Arial, Helvetica, sans-serif;
+        padding: 20px;
+        position: absolute;
+        left: 10px;
+        z-index: 1;
+      }
+
+      .legend h3,
+      h4 {
+        margin: 0 0 0;
+      }
+
+      .legend p {
+        margin: 10px 0 10px;
+      }
+
+      .legend div span {
+        border-radius: 50%;
+        display: inline;
+        height: 10px;
+        margin-right: 5px;
+        width: 10px;
+      }
+      #dynamic div span {
+        border-radius: 50%;
+        display: inline-block;
+        height: 10px;
+        margin-right: 5px;
+        width: 10px;
       }
     </style>
   </head>
   <body>
     <div id="map"></div>
-    <div class="filter-ctrl"></div>
+    <div id="state-legend" class="legend">
+      <h3>Gieß den Kiez Kennzahlen</h3>
+      <p><em>Vegetationsperiode 2021 (März bis Oktober)</em></p>
+      <hr style="opacity: 0.4;" />
+      <div id="dynamic">
+        <p style="background-color: #35de89; opacity: 0.8; color: white; padding: 0.5em 1em 0.5em 1em; display: inline-flex; margin: 0.5em 0 0 0"><strong>Berlin</strong></p>
+        <p>∑ Gegossene Bäume: <strong><span id="sumBaumBerlin"></span></strong></p>
+        <p>∑ Gießungen: <strong><span id="sumGiessBerlin"></span></strong></p>
+        <p>∑ Wassermenge: <strong><span id="sumWasserBerlin"></span>Liter</strong></p>
+      </div>
+      <hr style="opacity: 0.4;" />
+      <p style="background-color: #35de89; opacity: 0.8; color: white; padding: 0.5em 1em 0.5em 1em; display: inline-flex; margin: 0.5em 0 0 0">
+        <strong><span id="kiezname">Bezirk nicht ausgewählt</span></strong>
+        <p>∑ Gegossene Bäume: <strong><span id="sumBaumBezirk">0</span></strong></p>
+        <p>∑ Gießungen: <strong><span id="sumGiessBezirk">0</span></strong></p></p>
+        <p>∑ Wassermenge: <strong><span id="sumWasserBezirk">0</span> Liter</strong></p>
+      </p>
+    </div>
     <script>
       mapboxgl.accessToken =
         "pk.eyJ1IjoianVsaWF6ZXQiLCJhIjoiY2trdmhkdmE0MXNidjJ1cGZhaXVrZDE1NSJ9.I0eyCt352bKnMo50n4cDIQ";
@@ -48,7 +103,7 @@
         center: [13.430168, 52.489868], // starting position ([lng, lat] close to Hermannplatz
         zoom: 15, // starting zoom
         pitch: 45,
-        maxZoom: 17,
+        maxZoom: 18,
         minZoom: 10,
       });
 
@@ -59,6 +114,63 @@
         unit: "metric",
       });
       map.addControl(scale, "bottom-right");
+      map.addControl(new mapboxgl.NavigationControl());
+      map.addControl(new mapboxgl.FullscreenControl());
+      // Add geolocate control to the map.
+      map.addControl(
+        new mapboxgl.GeolocateControl({
+          positionOptions: {
+            enableHighAccuracy: true,
+          },
+          trackUserLocation: true,
+        })
+      );
+
+      // helper function
+      function numberFormat(num) {
+        return (
+          num
+            .toFixed(0) // always two decimal digits
+            .replace('.', ',') // replace decimal point character with ,
+            .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')
+        ) // use . as a separator
+      }
+
+      let kiezname;
+      let trees; 
+      let sumB = 0;
+      let sumG = 0;
+      let sumW = 0
+      // load data with vanllia JS
+      fetch("./data/wateredTreesSum_MidSep.geojson").then(data => data.json()).then(geojson => {
+        trees = Object.values(geojson) // object
+        trees = trees[1] // array
+
+        // +++ calculate numbers for Berlin
+        sumB = trees.length;
+        trees.forEach(function(feature){
+              sumG = sumG + feature.properties.anzahlG;
+              sumW = sumW + feature.properties.wassersumme;
+            })
+
+        const sumBaumBerlin = document.getElementById("sumBaumBerlin");
+        sumBaumBerlin.innerHTML = numberFormat(sumB);    
+        const sumGiessBerlin = document.getElementById("sumGiessBerlin");
+        sumGiessBerlin.innerHTML = numberFormat(sumG);
+        const sumWasserBerlin = document.getElementById("sumWasserBerlin");
+        sumWasserBerlin.innerHTML = numberFormat(sumW);
+      })
+
+
+// // Berlin
+//       let gemeindeTrees = allTrees.filter((tree) => (tree.Gemeinde_name === kiezname));
+
+// // Gemeinde
+//       let wassermenge = 0;
+//       gemeindeTrees.forEach((trees) =>
+//        wassermenge = wassermenge + trees.
+//       )
+
 
       // add data sources right from mapbox tilesets
       map.on("load", function () {
@@ -70,7 +182,7 @@
 
         map.addSource("watered-trees", {
           type: "vector",
-          url: "mapbox://juliazet.4x7k4a0y",
+          url: "mapbox://juliazet.azwgfjip",
         });
 
         map.addSource("watered-trees-geojson", {
@@ -84,11 +196,11 @@
           source: "bezirke",
           layout: {},
           paint: {
-            "fill-color": "darkseagreen",
+            "fill-color": "#35DE89",
             "fill-opacity": [
               "case",
               ["boolean", ["feature-state", "hover"], false],
-              0.15,
+              0.18,
               0,
             ],
           },
@@ -100,7 +212,7 @@
           source: "bezirke",
           layout: {},
           paint: {
-            "line-color": "darkseagreen",
+            "line-color": "#35DE89",
             "line-width": 1.5,
           },
         });
@@ -110,7 +222,7 @@
           id: "watered-trees",
           type: "circle",
           source: "watered-trees",
-          "source-layer": "wateredTreesSum-b5lwpz",
+          "source-layer": "wateredTreesSum_MidSep-0lqlgu",
           paint: {
             // Make circles larger as the user zooms from z12 to z22.
             "circle-radius": {
@@ -146,6 +258,38 @@
         // +++ END OF MAP ON LOAD
       });
 
+      // var calculated = false;
+      // // calculate Berlin data
+      // map.on('idle',function(){
+      //   if(map.isSourceLoaded("watered-trees") && calculated == false){
+      //   const features = map.querySourceFeatures('watered-trees', {sourceLayer:'wateredTreesSum_MidSep-0lqlgu'});
+      //   console.log("features", features.slice(-4)[0].properties.id);
+
+      //   // Because features come from tiled vector data or GeoJSON data that is converted to tiles internally, feature geometries may be split or duplicated across tile boundaries and,
+      //   // as a result, features may appear multiple times in query results!!! WTF
+      //   const key = "id";
+      //   const arrayUniqueByKey = [...new Map(features.map(item =>[item[key], item])).values()];
+      //   console.log("unique by key", arrayUniqueByKey);
+
+      //   // WTF!!!
+      //   // querySourceFeatures() always returns features which have been loaded into the current viewport.
+      //   // It can't access anything other than the current zoom level.
+
+      //   let sumG = 0;
+      //   let sumW = 0;
+      //   arrayUniqueByKey.forEach(function(feature){
+      //     sumG = sumG + feature.properties.anzahlG;
+      //     sumW = sumW + feature.properties.wassersumme;
+      //   })
+      //   const sumGiessBerlin = document.getElementById("sumGiessBerlin");
+      //   sumGiessBerlin.innerHTML = sumG;
+
+      //   const sumWasserBerlin = document.getElementById("sumWasserBerlin");
+      //   sumWasserBerlin.innerHTML = sumW;
+      //   calculated = true;
+      //   }        
+      // })
+
       // When the user moves their mouse over the state-fill layer, we'll update the
       // feature state for the feature under the mouse.
       map.on("mousemove", "bezirk-fill", function (e) {
@@ -156,12 +300,46 @@
               { hover: false }
             );
           }
+          // Use the first found id of the feature.
           bezirkID = e.features[0].id;
           map.setFeatureState(
             { source: "bezirke", id: bezirkID },
             { hover: true }
           );
         }
+
+        kiezname = e.features[0].properties.Gemeinde_name;
+        const kieznameElement = document.getElementById("kiezname");
+        kieznameElement.innerHTML = kiezname;
+
+        // +++ calculate numbers for hovered Bezirk
+        let bezirkTrees = trees.filter((e) => (e.properties.bezirk === kiezname));
+        let sumBBezirk = bezirkTrees.length;
+        let sumGBezirk = 0;
+        let sumWBezirk = 0
+
+        bezirkTrees.forEach(function(feature){
+          sumGBezirk = sumGBezirk + feature.properties.anzahlG;
+          sumWBezirk = sumWBezirk + feature.properties.wassersumme;
+        })
+
+        let ratioBaum = sumBBezirk/sumB*100;
+        ratioBaum = ratioBaum.toFixed(2); 
+
+        let ratioGiess = sumGBezirk/sumG*100;
+        ratioGiess = ratioGiess.toFixed(2); 
+
+        let ratioWasser =sumWBezirk/sumW*100;
+        ratioWasser = ratioWasser.toFixed(2); 
+
+
+        const sumBaumBezirk = document.getElementById("sumBaumBezirk");
+        sumBaumBezirk.innerHTML = numberFormat(sumBBezirk) + " (" + ratioBaum +"%)";    
+        const sumGiessBezirk = document.getElementById("sumGiessBezirk");
+        sumGiessBezirk.innerHTML = numberFormat(sumGBezirk) + " (" + ratioGiess +"%)";
+        const sumWasserBezirk = document.getElementById("sumWasserBezirk");
+        sumWasserBezirk.innerHTML = numberFormat(sumWBezirk) + " (" + ratioWasser +"%)";
+
       });
 
       // When the mouse leaves the state-fill layer, update the feature state of the
@@ -183,6 +361,7 @@
       });
 
       map.on("mouseenter", "watered-trees", function (e) {
+
         // Change the cursor style as a UI indicator.
         map.getCanvas().style.cursor = "pointer";
 
@@ -205,20 +384,20 @@
         popup
           .setLngLat(coordinates)
           .setHTML(
-            "<h3>" +
+            "<p style='background-color: #35de89; opacity: 0.8; color: white; padding: 0.5em 1em 0.5em 1em; display: block;'><strong>" +
               artdtsch +
               " (" +
               alter +
-              " J.) " +
-              "</h3>" +
+              " Jahre) " +
+              "</strong></p>" +
               "<p><b> Anzahl Gießungen: " +
               anzahlG +
               "</b></p>" +
               "<p><b> Erhaltene Wassermenge: " +
               wassersumme +
-              " l</b></p><p>" +
+              " Liter</b></p><p>" +
               strname +
-              " " +
+              " Nr. " +
               hausnr +
               "</p>"
           )
